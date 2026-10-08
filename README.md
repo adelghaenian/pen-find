@@ -41,6 +41,39 @@ flowchart LR
 - **Says when it's guessing.** If nothing clearly matches, it prints `no confident match`, lists the closest
   frames marked `?`, and saves small thumbnails of them, so you (or a vision model like Claude) can pick by eye.
 
+## Speed and cost: pen-find vs your agent reading the file
+
+Measured on a real app design file (~2,100 nodes; ~990 screens and main parts searched by default).
+"Agent alone" means Claude reads the node list through Pen's MCP tools and picks the frame itself.
+
+**One "find this frame" lookup**
+
+| | Agent alone, names only | Agent alone, names + text<br><sub>(needed to match by meaning)</sub> | **pen-find** |
+| --- | --- | --- | --- |
+| Tokens your agent reads | ~8k | ~33k | **~150** |
+| Tool calls | 2–4 | 2–4 | **1** |
+| Time | ~20–40 s | ~20–40 s | **~1.5–2 s** |
+| Cost on Claude Opus 5.5 API | ~$0.04 | ~$0.14 | **~$0.009** |
+| Cost on Claude Sonnet 5.5 API | ~$0.02 | ~$0.07 | **~$0.009** |
+| Cost on Claude Haiku 4.5 API | ~$0.01 | ~$0.03 | **~$0.009** |
+| Stays in the agent's context afterwards | 8k | 33k | **~150** |
+
+pen-find's cost is Jev's (~200k tokens at $0.042 per million) plus the agent reading ~150 tokens of results.
+
+**Two costs the table understates for the agent-alone path**
+
+- **Extra tool calls** re-send the whole conversation. In a long session (100k+ tokens, cached) that's roughly
+  $0.02–0.03 per call on Opus 5.5.
+- **What it leaves behind:** the 8–33k tokens it read stay in the conversation and are re-read on every later
+  turn, about another $0.08–0.33 on Opus 5.5 over 50 turns, and they fill the context window sooner.
+
+**In short:** on an API key, pen-find is about **5–15× cheaper per lookup than Opus** and about **10–20× faster**.
+On a Claude subscription nothing is billed per token, so the win is speed, usage limits and a cleaner context.
+
+<sub>Estimates from token counts measured on one ~2,100-node file and Anthropic's list prices (October 2026:
+Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10, Haiku 4.5 $1 / $5 per million input / output tokens; cached input $0.20).
+Your numbers scale with file size and session length.</sub>
+
 ## Install
 
 **As a Claude Code plugin**
