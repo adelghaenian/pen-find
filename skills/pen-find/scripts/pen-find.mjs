@@ -31,6 +31,7 @@ function parseArgs(argv) {
     if (!a.startsWith('--')) { pos.push(a); continue; }
     const k = a.slice(2);
     if (['deep', 'json', 'help', 'refresh'].includes(k)) flags[k] = true;
+    else if (k === 'no-fallback') flags.fallback = 'off';
     else flags[k] = argv[++i];
   }
   return { pos, flags };
@@ -141,7 +142,26 @@ async function rank(query, items) {
   return { rows, tokens };
 }
 
-const describe = (it) => `${it.n || '(unnamed)'} — ${it.k}, ${it.w}×${it.h}. Inside: ${it.p || '(top level)'}.${it.t ? ` Text: ${it.t}` : ''}`;
+// What a frame is and looks like, in words, so frames without text can still be found.
+const counted = (m) => Object.entries(m || {}).map(([k, n]) => (n > 1 ? `${k} ×${n}` : k)).join(', ');
+function device(w, h) {
+  const [a, b] = [Math.min(w, h), Math.max(w, h)], land = w > h ? ' (landscape)' : '';
+  if (a >= 360 && a <= 440 && b >= 760 && b <= 960) return `phone screen${land}`;
+  if (a >= 740 && a <= 1040 && b >= 1000 && b <= 1400) return `tablet screen${land}`;
+  if (a >= 1200) return 'large board or canvas';
+  return '';
+}
+const WEAK = 0.6; // below this normalized score a match is a guess
+
+const describe = (it) => [
+  `${it.n || '(unnamed)'} — ${it.k}, ${it.w}×${it.h}${device(it.w, it.h) ? `, ${device(it.w, it.h)}` : ''}.`,
+  `Inside: ${it.p || '(top level)'}.`,
+  it.l && `Background: ${it.l}.`,
+  counted(it.c) && `Contains components: ${counted(it.c)}.`,
+  counted(it.i) && `Icons: ${counted(it.i)}.`,
+  it.g?.image && `Has ${it.g.image} image${it.g.image > 1 ? 's' : ''}.`,
+  it.t && `Text: ${it.t}`,
+].filter(Boolean).join(' ');
 
 // ---------- Pen MCP ----------
 
@@ -190,11 +210,22 @@ async function activeFile(p) {
 // Runs inside Pen: one JSON line per frame / group / instance, with its path and the text inside it.
 const INDEX_JS = `const items={},comps={};
 Get(n=>{if(n.reusable)comps[n.id]=n.name});
+const look=(f)=>{const x=Array.isArray(f)?f[0]:f;if(!x)return"";
+  if(typeof x==="string"){if(x[0]==="$")return x.slice(1);const h=x.replace("#","");if(h.length<6)return"";
+    const [r,g,b]=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));const l=(0.299*r+0.587*g+0.114*b)/255;
+    return l<0.25?"dark":l>0.8?"light":"mid-tone";}
+  if(x.type==="image")return"image";if(x.type==="gradient")return"gradient";
+  if(x.type==="color")return look(x.color);return x.type||"";};
+const bump=(it,key,v)=>{if(!it)return;const m=it[key];if(m[v]!==undefined||Object.keys(m).length<10)m[v]=(m[v]||0)+1;};
 Get((n,c)=>{
   const anc=[];let p=c.parentCtx;while(p){anc.unshift(p.node);p=p.parentCtx;}
+  const up=anc.slice(-6).map(a=>items[a.id]);
   if(n.type==="text"&&n.content){const s=String(n.content);for(const a of anc){const it=items[a.id];if(it&&it.t.length<400)it.t+=(it.t?" · ":"")+s.slice(0,80);}return;}
+  if(n.type==="icon"&&n.icon){for(const it of up)bump(it,"i",String(n.icon));return;}
+  const lk=look(n.fill);if(lk==="image")for(const it of up)bump(it,"g","image");
   if(!["frame","group","ref"].includes(n.type))return;
-  items[n.id]={id:n.id,d:c.depth,p:anc.map(a=>a.name||a.type).join(" › "),n:n.name||"",k:n.type==="ref"?"instance of "+(comps[n.ref]||"a component"):(n.reusable?"component":n.type),w:Math.round(c.bounds.width),h:Math.round(c.bounds.height),t:""};
+  if(n.type==="ref")for(const it of up)bump(it,"c",comps[n.ref]||"component");
+  items[n.id]={id:n.id,d:c.depth,p:anc.map(a=>a.name||a.type).join(" › "),n:n.name||"",k:n.type==="ref"?"instance of "+(comps[n.ref]||"a component"):(n.reusable?"component":n.type),w:Math.round(c.bounds.width),h:Math.round(c.bounds.height),t:"",l:lk,c:{},i:{},g:{}};
 });
 for(const v of Object.values(items))Print(JSON.stringify(v));`;
 
@@ -226,14 +257,22 @@ async function cmdFind(query, flags) {
     const items = flags.deep ? all : all.filter((i) => i.d <= 4 || i.k === 'component');
     const { rows, tokens } = await rank(query, items);
     const top = rows.slice(0, Number(flags.top) || 5);
-    if (flags.shot) {
-      fs.mkdirSync(flags.shot, { recursive: true });
-      await p.call('execute', { filePath: file, input: `Export(${JSON.stringify(top.map((r) => r.it.id))},"png",${JSON.stringify(path.resolve(flags.shot))},{scale:1})` });
+    const max = LEVELS.length - 1, sure = (r) => r.s / max >= WEAK;
+    // Nothing clearly matched (often frames with no text and a generic name): still show the closest ones,
+    // marked "?", and export small thumbnails so a person or a vision model can pick by eye.
+    const weak = !top.some(sure) && flags.fallback !== 'off';
+    const shotDir = flags.shot || (weak ? fs.mkdtempSync(path.join(os.tmpdir(), 'pen-find-')) : null);
+    if (shotDir) {
+      fs.mkdirSync(shotDir, { recursive: true });
+      await p.call('execute', { filePath: file, input: `Export(${JSON.stringify(top.map((r) => r.it.id))},"png",${JSON.stringify(path.resolve(shotDir))},{scale:${flags.shot ? 1 : 0.25}})` });
     }
-    const max = LEVELS.length - 1;
-    if (flags.json) console.log(JSON.stringify({ file, matches: top.map((r) => ({ id: r.it.id, name: r.it.n, path: r.it.p, kind: r.it.k, size: [r.it.w, r.it.h], score: r.s / max, confidence: r.c })) }, null, 2));
-    else for (const r of top) console.log(`${(r.s / max).toFixed(2)}  ${r.it.id}  ${r.it.p ? r.it.p + ' › ' : ''}${r.it.n}  (${r.it.k}, ${r.it.w}×${r.it.h})`);
-    process.stderr.write(`— ${items.length} nodes judged · ${((Date.now() - t0) / 1000).toFixed(1)}s · jev ${(tokens / 1000).toFixed(1)}k tok ($${(tokens * 0.042 / 1e6).toFixed(4)})${flags.shot ? ` · screenshots in ${flags.shot}` : ''}\n`);
+    const png = (r) => (shotDir ? path.join(path.resolve(shotDir), `${r.it.id}.png`) : null);
+    if (flags.json) console.log(JSON.stringify({ file, confident: !weak, matches: top.map((r) => ({ id: r.it.id, name: r.it.n, path: r.it.p, kind: r.it.k, size: [r.it.w, r.it.h], score: r.s / max, confidence: r.c, sure: sure(r), image: png(r) })) }, null, 2));
+    else {
+      if (weak) console.log('no confident match. Closest frames below; open the thumbnails to pick by eye:');
+      for (const r of top) console.log(`${sure(r) ? ' ' : '?'}${(r.s / max).toFixed(2)}  ${r.it.id}  ${r.it.p ? r.it.p + ' › ' : ''}${r.it.n}  (${r.it.k}, ${r.it.w}×${r.it.h})${shotDir ? `  → ${png(r)}` : ''}`);
+    }
+    process.stderr.write(`— ${items.length} nodes judged · ${((Date.now() - t0) / 1000).toFixed(1)}s · jev ${(tokens / 1000).toFixed(1)}k tok ($${(tokens * 0.042 / 1e6).toFixed(4)})${weak && !flags.deep ? ' · tip: try --deep, or describe what it looks like or contains' : ''}\n`);
   } finally { p.close(); }
 }
 
@@ -253,7 +292,8 @@ async function cmdInstall() {
 const HELP = `pen-find: find frames and components in a Pen design file by meaning (Jev).
   pen-find install               install as a Claude Code skill (asks for your key)
   pen-find setup                 paste your Jev API key (hidden input)
-  pen-find "<what you want>"     [--file x.pen] [--top 5] [--deep] [--shot DIR] [--json] [--refresh]
+  pen-find "<what you want>"     [--file x.pen] [--top 5] [--deep] [--shot DIR] [--json] [--refresh] [--no-fallback]
+                                 no confident match → closest frames marked "?" + small thumbnails to pick by eye
   pen-find index [--file x.pen]  rebuild the cached node index
   pen-find status                key and Pen check`;
 

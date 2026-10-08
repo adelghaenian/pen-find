@@ -22,7 +22,8 @@ pf index                 # rebuild the cached node index after big edits
   frame, group and instance.
 - Output: `score  nodeId  Board › … › Name  (kind, w×h)`. Use the node IDs directly in Pen's `execute`
   (`Get(id)`, `TakeScreenshot([id])`). `--shot DIR` exports PNGs of the matches.
-- It matches names and text, not pixels: unnamed, text-less frames are hard to find. Treat results as a
-  shortlist and screenshot the top hits before editing.
+- It matches names, text and structure (components, icons, background, device shape), not pixels. If nothing
+  matches confidently it prints `no confident match`, marks the closest frames `?` and gives thumbnail paths:
+  Read those images and pick by eye, or rephrase by what the frame contains. Treat results as a shortlist.
 - Privacy: node names, paths and text go to Jev. Anything key-shaped is redacted first. Don't use it on files
   whose text must not leave the machine.

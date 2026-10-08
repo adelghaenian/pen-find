@@ -34,7 +34,12 @@ flowchart LR
 - **Indexes** every frame, group and component instance: its name, where it sits (board › section › …), its
   size, and the text inside it. The index is cached per file and rebuilt when the file changes.
 - **Ranks** by meaning, not keywords: "the toast with Undo" finds a `Toast` component whose text says "Undo".
+- **Describes frames that have no text**, too: the components and icons inside them ("Finger ring ×3,
+  Pour point"), their background (light, dark, or the design's colour name), images, and device shape
+  (phone or tablet screen). So "screen with three finger rings" finds a text-less canvas.
 - **Returns** node IDs you can pass straight to Pen's tools, and `--shot` exports PNGs of the matches.
+- **Says when it's guessing.** If nothing clearly matches, it prints `no confident match`, lists the closest
+  frames marked `?`, and saves small thumbnails of them, so you (or a vision model like Claude) can pick by eye.
 
 ## Install
 
@@ -73,6 +78,7 @@ pen-find "<what you're looking for>"
 | `--shot DIR` | export a PNG of each match |
 | `--json` | machine-readable output |
 | `--refresh` | rebuild the index (after edits Pen hasn't saved yet) |
+| `--no-fallback` | skip the thumbnails when nothing matches confidently |
 
 ```bash
 pen-find index     # rebuild the cached index
@@ -84,8 +90,8 @@ runs pen-find first and opens only what it returns.
 
 ## Good to know
 
-- **It reads names and text, not pixels.** A frame called "Frame 12" with nothing inside is hard to find. Good
-  layer names make it great.
+- **It reads names, text and structure, not pixels.** A frame called "Frame 12" with nothing but shapes inside
+  is hard to find by meaning; that's what the thumbnail fallback is for. Good layer names make it great.
 - **Results are a shortlist.** Glance at the top hits (or `--shot` them) before you edit anything.
 - **Cost:** about 200k Jev tokens per search on a file with ~1,000 screens and parts, which is under $0.01.
 
@@ -116,6 +122,12 @@ No. If `~/.quicksilver/config.json` has a Jev key, pen-find uses it.
 Not yet. It talks to the MCP server that ships inside the Pen app on macOS. Set `PEN_MCP_BIN` if yours lives
 elsewhere.
 </details>
+
+## Credits
+
+Inspired by [**quicksilver**](https://github.com/UditAkhourii/quicksilver) by Udit Akhouri, which hands an AI
+agent's bulk judgment calls (which files matter, which log lines are errors) to Jev. pen-find applies the same
+idea to design files.
 
 ---
 

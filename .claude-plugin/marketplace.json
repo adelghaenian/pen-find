@@ -12,7 +12,7 @@
       "name": "pen-find",
       "source": "./",
       "description": "Find frames, screens and components in Pen (pen.dev) design files by describing them, ranked by Jev.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }

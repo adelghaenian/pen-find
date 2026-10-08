@@ -1,10 +1,20 @@
 {
   "name": "pen-find",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Find frames, screens and components in Pen (pen.dev) design files by describing them, ranked by Jev.",
-  "author": { "name": "Adel Ghaenian", "url": "https://iamadel.com" },
+  "author": {
+    "name": "Adel Ghaenian",
+    "url": "https://iamadel.com"
+  },
   "homepage": "https://github.com/adelghaenian/pen-find",
   "repository": "https://github.com/adelghaenian/pen-find",
   "license": "MIT",
-  "keywords": ["pen", "pen.dev", "design", "mcp", "jev", "search"]
+  "keywords": [
+    "pen",
+    "pen.dev",
+    "design",
+    "mcp",
+    "jev",
+    "search"
+  ]
 }
