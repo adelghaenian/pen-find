@@ -1,0 +1,27 @@
+# Publishes to npm when a GitHub release is published. Uses npm trusted publishing (OIDC):
+# no npm token is stored, and the package gets a provenance badge.
+# One-time setup on npmjs.com: pen-find → Settings → Trusted Publisher → GitHub Actions,
+# owner adelghaenian, repository pen-find, workflow publish.yml.
+name: Publish to npm
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches package.json
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "v$v" = "${{ github.event.release.tag_name }}" ] || { echo "release ${{ github.event.release.tag_name }} != package.json $v"; exit 1; }
+      - run: node --check skills/pen-find/scripts/pen-find.mjs
+      - run: npm install -g npm@latest
+      - run: npm publish --access public --provenance
