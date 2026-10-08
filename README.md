@@ -4,7 +4,7 @@
 
 **Find any frame in a [Pen](https://pen.dev) design file by describing it.**
 
-[![npm](https://img.shields.io/npm/v/pen-find?color=cb3837&label=npm)](https://www.npmjs.com/package/pen-find)
+[![version](https://img.shields.io/github/package-json/v/adelghaenian/pen-find?color=cb3837&label=version)](https://github.com/adelghaenian/pen-find)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![Node 18+](https://img.shields.io/badge/node-%E2%89%A518-339933)
@@ -53,13 +53,13 @@ flowchart LR
 **Or with npx** (CLI, and installs the Claude Code skill)
 
 ```bash
-npx pen-find install
+npx github:adelghaenian/pen-find install
 ```
 
 Then add your Jev key once. Get one at [console.typesafe.ai](https://console.typesafe.ai):
 
 ```bash
-npx pen-find setup        # input is hidden; saved to ~/.pen-find/config.json (owner-only)
+npx github:adelghaenian/pen-find setup   # input is hidden; saved to ~/.pen-find/config.json (owner-only)
 ```
 
 `JEV_API_KEY` in the environment works too. Requirements: macOS, the Pen desktop app open, Node 18+.
