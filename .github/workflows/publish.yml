@@ -1,8 +1,9 @@
-# Publishes to npm when a GitHub release is published. Uses npm trusted publishing (OIDC):
-# no npm token is stored, and the package gets a provenance badge.
+# Stages a release on npm when a GitHub release is published. Uses npm trusted publishing (OIDC):
+# no npm token is stored, and the package gets a provenance badge. Nothing goes live until the
+# maintainer approves it with 2FA:  npm stage list pen-find  →  npm stage approve <id> --otp=<code>
 # One-time setup on npmjs.com: pen-find → Settings → Trusted Publisher → GitHub Actions,
-# owner adelghaenian, repository pen-find, workflow publish.yml.
-name: Publish to npm
+# owner adelghaenian, repository pen-find, workflow publish.yml, "Allow npm publish" unticked.
+name: Stage on npm
 on:
   release:
     types: [published]
@@ -24,4 +25,4 @@ jobs:
           [ "v$v" = "${{ github.event.release.tag_name }}" ] || { echo "release ${{ github.event.release.tag_name }} != package.json $v"; exit 1; }
       - run: node --check skills/pen-find/scripts/pen-find.mjs
       - run: npm install -g npm@latest
-      - run: npm publish --access public --provenance
+      - run: npm stage publish --access public --provenance
