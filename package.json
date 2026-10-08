@@ -1,0 +1,16 @@
+{
+  "name": "pen-find",
+  "version": "0.1.0",
+  "description": "Find frames, screens and components in Pen (pen.dev) design files by describing them. Jev ranks every node by meaning; your AI agent only reads the top matches.",
+  "type": "module",
+  "bin": { "pen-find": "skills/pen-find/scripts/pen-find.mjs" },
+  "files": ["skills/", ".claude-plugin/", "assets/", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "os": ["darwin"],
+  "keywords": ["pen", "pen.dev", "pencil", "design", "mcp", "claude-code", "claude-code-plugin", "skill", "jev", "typesafe", "search", "ai-agents"],
+  "repository": { "type": "git", "url": "git+https://github.com/adelghaenian/pen-find.git" },
+  "homepage": "https://github.com/adelghaenian/pen-find#readme",
+  "bugs": "https://github.com/adelghaenian/pen-find/issues",
+  "author": "Adel Ghaenian (https://iamadel.com)",
+  "license": "MIT"
+}

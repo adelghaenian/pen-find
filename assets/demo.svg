@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="880" height="330" viewBox="0 0 880 330" role="img" aria-label="pen-find finds the Settings screen in a Pen file in 1.6 seconds">
+  <style>
+    .t{font:15px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#d6d3cc}
+    .dim{fill:#8b877f}.p{fill:#e2a35c}.q{fill:#f2efe9}.s{fill:#8fc79a}.id{fill:#9fb3e8}.k{fill:#8b877f}
+  </style>
+  <rect width="880" height="330" rx="14" fill="#1b1a18"/>
+  <rect width="880" height="38" rx="14" fill="#252421"/>
+  <rect y="24" width="880" height="14" fill="#252421"/>
+  <circle cx="24" cy="19" r="6" fill="#ec6a5e"/><circle cx="44" cy="19" r="6" fill="#f4bf4f"/><circle cx="64" cy="19" r="6" fill="#61c554"/>
+  <text x="440" y="24" text-anchor="middle" class="t dim" style="font-size:13px">pen-find · my-app.pen</text>
+  <text x="28" y="78" class="t"><tspan class="p">❯</tspan> <tspan class="q">pen-find "settings screen on iPad, dark mode"</tspan></text>
+  <text x="28" y="118" class="t"><tspan class="s">0.98</tspan>  <tspan class="id">nha5B </tspan> iPad › Screens › <tspan class="q">Settings · iPad · Dark</tspan>   <tspan class="k">(frame, 834×1210)</tspan></text>
+  <text x="28" y="146" class="t"><tspan class="s">0.95</tspan>  <tspan class="id">S10TB </tspan> Dark › Screens › <tspan class="q">Settings · iPhone</tspan>       <tspan class="k">(frame, 402×874)</tspan></text>
+  <text x="28" y="174" class="t"><tspan class="s">0.81</tspan>  <tspan class="id">a6zOX </tspan> System › Components › <tspan class="q">List row</tspan>        <tspan class="k">(component, 362×52)</tspan></text>
+  <text x="28" y="210" class="t dim">— 989 nodes judged · 1.6s · jev 195k tok ($0.008)</text>
+  <text x="28" y="262" class="t"><tspan class="p">❯</tspan> <tspan class="q">pen-find "empty state for the gallery" --top 1 --shot ./shots</tspan></text>
+  <text x="28" y="298" class="t"><tspan class="s">0.99</tspan>  <tspan class="id">eEvNY </tspan> Screens › <tspan class="q">Gallery · Empty</tspan>   <tspan class="k">(frame, 402×874)</tspan>  <tspan class="dim">→ shots/eEvNY.png</tspan></text>
+</svg>
