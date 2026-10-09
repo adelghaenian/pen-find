@@ -113,6 +113,13 @@ pen-find "<what you're looking for>"
 | `--refresh` | rebuild the index (after edits Pen hasn't saved yet) |
 | `--no-fallback` | skip the thumbnails when nothing matches confidently |
 
+**Know the name? Skip the AI.** `list` matches names with a glob and returns ids and bounds in natural order,
+plus any sibling frames that overlap. It's free, needs no key, and is handy for tidying archives or checking a layout:
+
+```bash
+pen-find list "ARCHIVE 2*"          # add --json for x, y, w, h
+```
+
 ```bash
 pen-find index     # rebuild the cached index
 pen-find status    # is the key set, is Pen reachable

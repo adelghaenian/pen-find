@@ -6,6 +6,7 @@
 //   pen-find install                    # install as a Claude Code skill, then asks for your Jev key
 //   pen-find setup                      # paste your Jev key (hidden), saved to ~/.pen-find/config.json
 //   pen-find "the shelf empty state, dark mode"   [--file x.pen] [--top 5] [--deep] [--shot DIR] [--json]
+//   pen-find list "ARCHIVE 2*"           # ids + bounds by name glob, overlaps flagged (no Jev)
 //   pen-find index [--file x.pen]       # (re)build the cached node index
 //   pen-find status
 import { spawn } from 'node:child_process';
@@ -225,12 +226,12 @@ Get((n,c)=>{
   const lk=look(n.fill);if(lk==="image")for(const it of up)bump(it,"g","image");
   if(!["frame","group","ref"].includes(n.type))return;
   if(n.type==="ref")for(const it of up)bump(it,"c",comps[n.ref]||"component");
-  items[n.id]={id:n.id,d:c.depth,p:anc.map(a=>a.name||a.type).join(" › "),n:n.name||"",k:n.type==="ref"?"instance of "+(comps[n.ref]||"a component"):(n.reusable?"component":n.type),w:Math.round(c.bounds.width),h:Math.round(c.bounds.height),t:"",l:lk,c:{},i:{},g:{}};
+  items[n.id]={id:n.id,d:c.depth,p:anc.map(a=>a.name||a.type).join(" › "),n:n.name||"",k:n.type==="ref"?"instance of "+(comps[n.ref]||"a component"):(n.reusable?"component":n.type),x:Math.round(c.bounds.x),y:Math.round(c.bounds.y),w:Math.round(c.bounds.width),h:Math.round(c.bounds.height),t:"",l:lk,c:{},i:{},g:{}};
 });
 for(const v of Object.values(items))Print(JSON.stringify(v));`;
 
 function cachePath(file) {
-  const h = crypto.createHash('sha1').update(path.resolve(file)).digest('hex').slice(0, 12);
+  const h = crypto.createHash('sha1').update('v2:' + path.resolve(file)).digest('hex').slice(0, 12);
   return path.join(HOME, 'index', `${path.basename(file, '.pen')}-${h}.jsonl`);
 }
 
@@ -246,6 +247,30 @@ async function loadIndex(p, file, refresh) {
 }
 
 // ---------- commands ----------
+
+// No Jev, no key: frames whose name matches a glob (* ?), in natural order, with bounds and overlaps.
+async function cmdList(pattern, flags) {
+  const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+  const p = await pen();
+  try {
+    const file = path.resolve(flags.file || await activeFile(p));
+    if (!fs.existsSync(file)) die(`no such file: ${file}`);
+    const hits = (await loadIndex(p, file, flags.refresh)).filter((i) => re.test(i.n))
+      .sort((a, b) => a.p.localeCompare(b.p) || a.n.localeCompare(b.n, undefined, { numeric: true }));
+    // x/y are relative to the parent, so only siblings (same path) can overlap.
+    const overlaps = [];
+    for (let i = 0; i < hits.length; i++) for (let j = i + 1; j < hits.length; j++) {
+      const a = hits[i], b = hits[j];
+      if (a.p === b.p && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) overlaps.push([a.id, b.id]);
+    }
+    if (flags.json) console.log(JSON.stringify({ file, frames: hits.map((i) => ({ id: i.id, name: i.n, path: i.p, x: i.x, y: i.y, w: i.w, h: i.h })), overlaps }, null, 2));
+    else {
+      for (const i of hits) console.log(`${i.id}  ${i.p ? i.p + ' › ' : ''}${i.n}  @${i.x},${i.y}  ${i.w}×${i.h}`);
+      for (const [a, b] of overlaps) console.log(`overlap: ${a} ↔ ${b}`);
+    }
+    process.stderr.write(`— ${hits.length} matched · ${overlaps.length} overlapping pair${overlaps.length === 1 ? '' : 's'}\n`);
+  } finally { p.close(); }
+}
 
 async function cmdFind(query, flags) {
   const t0 = Date.now();
@@ -294,6 +319,8 @@ const HELP = `pen-find: find frames and components in a Pen design file by meani
   pen-find setup                 paste your Jev API key (hidden input)
   pen-find "<what you want>"     [--file x.pen] [--top 5] [--deep] [--shot DIR] [--json] [--refresh] [--no-fallback]
                                  no confident match → closest frames marked "?" + small thumbnails to pick by eye
+  pen-find list "<name glob>"    ids + bounds of frames whose name matches (e.g. "ARCHIVE 2*"), natural order,
+                                 plus overlapping siblings. No key, no Jev. [--file x.pen] [--json] [--refresh]
   pen-find index [--file x.pen]  rebuild the cached node index
   pen-find status                key and Pen check`;
 
@@ -308,4 +335,5 @@ else if (cmd === 'status') {
 } else if (cmd === 'index') {
   const p = await pen();
   try { const f = path.resolve(flags.file || await activeFile(p)); console.log(`${(await loadIndex(p, f, true)).length} nodes indexed from ${f}`); } finally { p.close(); }
-} else await cmdFind(pos.join(' '), flags);
+} else if (cmd === 'list') await cmdList(pos.slice(1).join(' ') || '*', flags);
+else await cmdFind(pos.join(' '), flags);

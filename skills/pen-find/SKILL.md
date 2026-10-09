@@ -13,6 +13,7 @@ and a Jev key (`pf status` checks both).
 
 ```bash
 pf "<what you're looking for>" [--top 5] [--file x.pen] [--deep] [--shot DIR] [--json] [--refresh]
+pf list "ARCHIVE 2*"      # ids + bounds of frames by name glob, natural order, overlaps flagged (free, no Jev)
 pf index                 # rebuild the cached node index after big edits
 ```
 
